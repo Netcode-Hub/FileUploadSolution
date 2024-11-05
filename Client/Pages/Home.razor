@@ -1,0 +1,32 @@
+﻿@page "/"
+@using NetcodeHub.Packages.Components.FileUpload
+@inject HttpClient client
+
+<NetcodeHubFileUpload @ref="FileUpload" Notify="GetFile" RequiredExtensions="RequiredEx" />
+<br />
+
+<img src="@ImageUrl" width="100" height="100" />
+@code {
+    string ImageUrl = string.Empty;
+    List<string> RequiredEx = [".png", ".jpg"];
+    NetcodeHubFileUpload FileUpload;
+
+    async void GetFile(NetcodeHubUploadModel model)
+    {
+        if (!model.FileModel.IBrowserFiles.Any())
+            return;
+
+        var file = model.FileModel.IBrowserFiles.FirstOrDefault();
+        var content = new MultipartFormDataContent();
+        var stream = file.OpenReadStream();
+        var fileContent = new StreamContent(stream);
+        content.Add(fileContent, "file", file.Name);
+        var response = await client.PostAsync("https://localhost:7058/api/fileupload/uploads", content);
+        if (response.IsSuccessStatusCode)
+        {
+            var result = await response.Content.ReadAsStringAsync();
+            ImageUrl = result;
+            StateHasChanged();
+        }
+    }
+}
